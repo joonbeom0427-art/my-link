@@ -1,26 +1,126 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #F4F3EE; /* Warm, high-end Brutalist background */
+  --foreground: #1A1A1A;
+  --primary: #FFE600; /* Neo Yellow */
+  --secondary: #FF5B99; /* Neo Pink/Magenta */
+  --accent-cyan: #00F0FF; /* Neo Cyan */
+  --accent-lime: #A3E635; /* Neo Lime */
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-neo-yellow: #FFE600;
+  --color-neo-pink: #FF5B99;
+  --color-neo-cyan: #00F0FF;
+  --color-neo-lime: #A3E635;
+  --color-neo-violet: #8B5CF6;
+  --color-neo-orange: #FF7A00;
+  
+  --font-heading: var(--font-space-grotesk), sans-serif;
+  --font-sans: var(--font-plus-jakarta-sans), sans-serif;
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-plus-jakarta-sans), sans-serif;
 }
+
+/* Custom Dotted Grid Background Pattern */
+.bg-dots-pattern {
+  background-image: radial-gradient(rgba(0, 0, 0, 0.18) 1.5px, transparent 1.5px);
+  background-size: 24px 24px;
+}
+
+.bg-grid-pattern {
+  background-size: 40px 40px;
+  background-image: 
+    linear-gradient(to right, rgba(0, 0, 0, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
+}
+
+/* Premium Neobrutalism Interactive Shadow Mechanics */
+.neo-box-yellow {
+  background-color: #FFE600;
+  border: 3px solid #000000;
+  box-shadow: 6px 6px 0px 0px #000000;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.neo-box-white {
+  background-color: #FFFFFF;
+  border: 3px solid #000000;
+  box-shadow: 6px 6px 0px 0px #000000;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.neo-box-pink {
+  background-color: #FF5B99;
+  border: 3px solid #000000;
+  box-shadow: 6px 6px 0px 0px #000000;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.neo-box-cyan {
+  background-color: #00F0FF;
+  border: 3px solid #000000;
+  box-shadow: 6px 6px 0px 0px #000000;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.neo-box-lime {
+  background-color: #A3E635;
+  border: 3px solid #000000;
+  box-shadow: 6px 6px 0px 0px #000000;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.neo-box-violet {
+  background-color: #8B5CF6;
+  border: 3px solid #000000;
+  box-shadow: 6px 6px 0px 0px #000000;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Hover collapse mappings */
+.neo-box-hover:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 3px 3px 0px 0px #000000;
+}
+
+.neo-box-hover:active {
+  transform: translate(6px, 6px);
+  box-shadow: 0px 0px 0px 0px #000000;
+}
+
+/* Button variants */
+.neo-btn {
+  border: 3px solid #000000;
+  box-shadow: 4px 4px 0px 0px #000000;
+  transition: all 0.12s ease-in-out;
+}
+
+.neo-btn:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px 0px #000000;
+}
+
+.neo-btn:active {
+  transform: translate(4px, 4px);
+  box-shadow: 0px 0px 0px 0px #000000;
+}
+
+/* Badge variants */
+.neo-badge {
+  border: 2px solid #000000;
+  box-shadow: 2px 2px 0px 0px #000000;
+}
+
+.neo-badge-sm {
+  border: 1.5px solid #000000;
+  box-shadow: 1.5px 1.5px 0px 0px #000000;
+}
+
