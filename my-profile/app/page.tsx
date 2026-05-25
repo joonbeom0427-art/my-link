@@ -204,7 +204,11 @@ export default function Home() {
     const cleanTitle = newTitle.trim();
     const cleanUrl = newUrl.trim();
 
-    if (cleanTitle.length < 2) {
+    // 1. 제목 공백 및 길이 검증
+    if (cleanTitle.length === 0) {
+      setTitleError("링크 제목을 입력해 주세요.");
+      isValid = false;
+    } else if (cleanTitle.length < 2) {
       setTitleError("링크 제목은 최소 2글자 이상 입력해 주세요.");
       isValid = false;
     } else if (cleanTitle.length > 40) {
@@ -212,22 +216,28 @@ export default function Home() {
       isValid = false;
     }
 
+    // 2. URL 공백 및 규격 검증
     let formattedUrl = cleanUrl;
-    if (!/^https?:\/\//i.test(formattedUrl)) {
-      formattedUrl = "https://" + formattedUrl;
-    }
-
-    let isUrlValid = false;
-    try {
-      const parsed = new URL(formattedUrl);
-      isUrlValid = !!(parsed.hostname && parsed.hostname.includes(".") && parsed.hostname.split(".").filter(Boolean).length >= 2);
-    } catch (err) {
-      isUrlValid = false;
-    }
-
-    if (!isUrlValid) {
-      setUrlError("올바른 웹 주소(URL) 형식을 입력해 주세요. (예: github.com 또는 https://...)");
+    if (cleanUrl.length === 0) {
+      setUrlError("이동할 주소(URL)를 입력해 주세요.");
       isValid = false;
+    } else {
+      if (!/^https?:\/\//i.test(formattedUrl)) {
+        formattedUrl = "https://" + formattedUrl;
+      }
+
+      let isUrlValid = false;
+      try {
+        const parsed = new URL(formattedUrl);
+        isUrlValid = !!(parsed.hostname && parsed.hostname.includes(".") && parsed.hostname.split(".").filter(Boolean).length >= 2);
+      } catch (err) {
+        isUrlValid = false;
+      }
+
+      if (!isUrlValid) {
+        setUrlError("올바른 웹 주소(URL) 형식을 입력해 주세요. (예: github.com 또는 https://...)");
+        isValid = false;
+      }
     }
 
     if (!isValid) return;
@@ -436,7 +446,7 @@ export default function Home() {
             </DialogTitle>
           </DialogHeader>
           
-          <form onSubmit={handleAddLink} className="space-y-5 pt-4">
+          <form onSubmit={handleAddLink} noValidate className="space-y-5 pt-4">
             {/* 링크 제목 입력 필드 */}
             <div className="space-y-2">
               <Label htmlFor="title" className="text-xs font-bold text-neutral-500 uppercase tracking-wider block">링크 제목</Label>
