@@ -172,6 +172,10 @@ export default function Home() {
   const [newTitle, setNewTitle] = useState("");
   const [newUrl, setNewUrl] = useState("");
 
+  // 입력 검증 에러 상태 추가
+  const [titleError, setTitleError] = useState("");
+  const [urlError, setUrlError] = useState("");
+
   // 실시간 파비콘 미리보기 분석용 헬퍼 (F-3.1)
   const getFaviconUrl = (urlStr: string) => {
     if (!urlStr) return "";
@@ -190,19 +194,47 @@ export default function Home() {
     return "";
   };
 
-  // 링크 추가 서브밋 핸들러 (로컬 상태 연동)
+  // 링크 추가 서브밋 핸들러 (로컬 상태 연동 및 입력 검증 추가)
   const handleAddLink = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTitle.trim() || !newUrl.trim()) return;
+    setTitleError("");
+    setUrlError("");
 
-    let formattedUrl = newUrl.trim();
+    let isValid = true;
+    const cleanTitle = newTitle.trim();
+    const cleanUrl = newUrl.trim();
+
+    if (cleanTitle.length < 2) {
+      setTitleError("링크 제목은 최소 2글자 이상 입력해 주세요.");
+      isValid = false;
+    } else if (cleanTitle.length > 40) {
+      setTitleError("링크 제목은 최대 40글자 이하로 입력해 주세요.");
+      isValid = false;
+    }
+
+    let formattedUrl = cleanUrl;
     if (!/^https?:\/\//i.test(formattedUrl)) {
       formattedUrl = "https://" + formattedUrl;
     }
 
+    let isUrlValid = false;
+    try {
+      const parsed = new URL(formattedUrl);
+      isUrlValid = !!(parsed.hostname && parsed.hostname.includes(".") && parsed.hostname.split(".").filter(Boolean).length >= 2);
+    } catch (err) {
+      isUrlValid = false;
+    }
+
+    if (!isUrlValid) {
+      setUrlError("올바른 웹 주소(URL) 형식을 입력해 주세요. (예: github.com 또는 https://...)");
+      isValid = false;
+    }
+
+    if (!isValid) return;
+
     const newLinkItem = {
       id: `link-${Date.now()}`,
-      title: newTitle.trim(),
+      title: cleanTitle,
       url: formattedUrl,
       icon: "Globe", // 기본 커스텀 링크 아이콘 구분
     };
@@ -212,6 +244,8 @@ export default function Home() {
     // 폼 초기화 및 다이얼로그 닫기
     setNewTitle("");
     setNewUrl("");
+    setTitleError("");
+    setUrlError("");
     setIsDialogOpen(false);
   };
 
@@ -382,7 +416,18 @@ export default function Home() {
       {/* ========================================================================= */}
       {/* 팝업 다이얼로그 (Dialog - F-3.1 링크 추가 폼) */}
       {/* ========================================================================= */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog 
+        open={isDialogOpen} 
+        onOpenChange={(open) => {
+          setIsDialogOpen(open);
+          if (!open) {
+            setNewTitle("");
+            setNewUrl("");
+            setTitleError("");
+            setUrlError("");
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-[425px] border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-900/95 backdrop-blur-xl">
           <DialogHeader>
             <DialogTitle className="text-lg font-black tracking-tight text-neutral-900 dark:text-neutral-50 flex items-center gap-2">
@@ -398,11 +443,17 @@ export default function Home() {
               <Input 
                 id="title" 
                 value={newTitle} 
-                onChange={(e) => setNewTitle(e.target.value)} 
+                onChange={(e) => {
+                  setNewTitle(e.target.value);
+                  if (titleError) setTitleError("");
+                }} 
                 placeholder="예: 나의 노션 이력서 📄" 
-                className="w-full font-semibold text-sm border-neutral-200 dark:border-neutral-800"
+                className={`w-full font-semibold text-sm border-neutral-200 dark:border-neutral-800 ${titleError ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20' : ''}`}
                 required 
               />
+              {titleError && (
+                <p className="text-red-500 text-xs font-bold mt-1 animate-pulse">⚠️ {titleError}</p>
+              )}
             </div>
             
             {/* 링크 URL 입력 필드 */}
@@ -411,15 +462,21 @@ export default function Home() {
               <Input 
                 id="url" 
                 value={newUrl} 
-                onChange={(e) => setNewUrl(e.target.value)} 
+                onChange={(e) => {
+                  setNewUrl(e.target.value);
+                  if (urlError) setUrlError("");
+                }} 
                 placeholder="예: notion.so/yourname" 
-                className="w-full font-semibold text-sm border-neutral-200 dark:border-neutral-800"
+                className={`w-full font-semibold text-sm border-neutral-200 dark:border-neutral-800 ${urlError ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20' : ''}`}
                 required 
               />
+              {urlError && (
+                <p className="text-red-500 text-xs font-bold mt-1 animate-pulse">⚠️ {urlError}</p>
+              )}
             </div>
             
             {/* 실시간 파비콘 자동 감지 미리보기 박스 (PRD F-3.1 규격 충족) */}
-            {getFaviconUrl(newUrl) && (
+            {getFaviconUrl(newUrl) && !urlError && (
               <div className="p-3 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-lg flex items-center gap-3 animate-fade-in transition-all">
                 <div className="p-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-md">
                   <img 
@@ -441,7 +498,13 @@ export default function Home() {
             )}
 
             <DialogFooter className="pt-4 flex gap-2 justify-end">
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+              <Button type="button" variant="outline" onClick={() => {
+                setIsDialogOpen(false);
+                setNewTitle("");
+                setNewUrl("");
+                setTitleError("");
+                setUrlError("");
+              }}>
                 취소
               </Button>
               <Button type="submit" className="bg-neutral-950 hover:bg-neutral-800 text-white dark:bg-white dark:hover:bg-neutral-100 dark:text-neutral-950">
