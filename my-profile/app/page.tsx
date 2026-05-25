@@ -51,90 +51,169 @@ function LinkIcon({ name }: { name: string }) {
     return <Briefcase className="w-5 h-5" />;
   }
 
-  return <Sparkles className="w-5 h-5 text-neutral-500" />;
+  return <Sparkles className="w-5 h-5" />;
 }
+
+// 각 브랜드 및 링크 아이템별 프리미엄 스타일 설정 맵
+const styleMap: Record<string, {
+  cardBg: string;
+  iconBg: string;
+  iconColor: string;
+  borderColor: string;
+  hoverBorder: string;
+  textColor: string;
+  arrowColor: string;
+}> = {
+  Instagram: {
+    cardBg: "bg-linear-to-r from-pink-500/10 via-rose-500/5 to-transparent hover:from-pink-500/15 hover:via-rose-500/10 dark:from-pink-500/10 dark:to-transparent bg-white/60 dark:bg-neutral-900/60",
+    iconBg: "bg-pink-100 dark:bg-pink-950/50 text-pink-600 dark:text-pink-400 group-hover:bg-pink-600 group-hover:text-white dark:group-hover:bg-pink-500",
+    iconColor: "text-pink-600 dark:text-pink-400",
+    borderColor: "border-pink-200/80 dark:border-pink-900/50",
+    hoverBorder: "hover:border-pink-400 dark:hover:border-pink-700 hover:shadow-[0_0_15px_rgba(236,72,153,0.15)]",
+    textColor: "text-pink-950 dark:text-pink-200 group-hover:text-pink-700 dark:group-hover:text-pink-300",
+    arrowColor: "text-pink-400 dark:text-pink-800 group-hover:text-pink-600 dark:group-hover:text-pink-400",
+  },
+  Youtube: {
+    cardBg: "bg-linear-to-r from-red-500/10 via-orange-500/5 to-transparent hover:from-red-500/15 hover:via-orange-500/10 dark:from-red-500/10 dark:to-transparent bg-white/60 dark:bg-neutral-900/60",
+    iconBg: "bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400 group-hover:bg-red-600 group-hover:text-white dark:group-hover:bg-red-500",
+    iconColor: "text-red-600 dark:text-red-400",
+    borderColor: "border-red-200/80 dark:border-red-900/50",
+    hoverBorder: "hover:border-red-400 dark:hover:border-red-700 hover:shadow-[0_0_15px_rgba(239,68,68,0.15)]",
+    textColor: "text-red-950 dark:text-red-200 group-hover:text-red-700 dark:group-hover:text-red-300",
+    arrowColor: "text-red-400 dark:text-red-800 group-hover:text-red-600 dark:group-hover:text-red-400",
+  },
+  BookOpen: {
+    cardBg: "bg-linear-to-r from-emerald-500/10 via-teal-500/5 to-transparent hover:from-emerald-500/15 hover:via-teal-500/10 dark:from-emerald-500/10 dark:to-transparent bg-white/60 dark:bg-neutral-900/60",
+    iconBg: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-600 group-hover:text-white dark:group-hover:bg-emerald-500",
+    iconColor: "text-emerald-600 dark:text-emerald-400",
+    borderColor: "border-emerald-200/80 dark:border-emerald-900/50",
+    hoverBorder: "hover:border-emerald-400 dark:hover:border-emerald-700 hover:shadow-[0_0_15px_rgba(16,185,129,0.15)]",
+    textColor: "text-emerald-950 dark:text-emerald-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-300",
+    arrowColor: "text-emerald-400 dark:text-emerald-800 group-hover:text-emerald-600 dark:group-hover:text-emerald-400",
+  },
+  Github: {
+    cardBg: "bg-linear-to-r from-slate-500/10 via-neutral-500/5 to-transparent hover:from-slate-500/15 hover:via-neutral-500/10 dark:from-slate-500/10 dark:to-transparent bg-white/60 dark:bg-neutral-900/60",
+    iconBg: "bg-slate-100 dark:bg-neutral-800 text-slate-800 dark:text-slate-200 group-hover:bg-slate-900 group-hover:text-white dark:group-hover:bg-neutral-100 dark:group-hover:text-neutral-950",
+    iconColor: "text-slate-800 dark:text-slate-200",
+    borderColor: "border-slate-200 dark:border-neutral-800",
+    hoverBorder: "hover:border-slate-400 dark:hover:border-neutral-700 hover:shadow-[0_0_15px_rgba(100,116,139,0.15)]",
+    textColor: "text-slate-950 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white",
+    arrowColor: "text-slate-400 dark:text-slate-700 group-hover:text-slate-800 dark:group-hover:text-slate-200",
+  },
+  Briefcase: {
+    cardBg: "bg-linear-to-r from-violet-500/10 via-fuchsia-500/5 to-transparent hover:from-violet-500/15 hover:via-fuchsia-500/10 dark:from-violet-500/10 dark:to-transparent bg-white/60 dark:bg-neutral-900/60",
+    iconBg: "bg-violet-100 dark:bg-violet-950/50 text-violet-600 dark:text-violet-400 group-hover:bg-violet-600 group-hover:text-white dark:group-hover:bg-violet-500",
+    iconColor: "text-violet-600 dark:text-violet-400",
+    borderColor: "border-violet-200/80 dark:border-violet-900/50",
+    hoverBorder: "hover:border-violet-400 dark:hover:border-violet-700 hover:shadow-[0_0_15px_rgba(139,92,246,0.15)]",
+    textColor: "text-violet-950 dark:text-violet-200 group-hover:text-violet-700 dark:group-hover:text-violet-300",
+    arrowColor: "text-violet-400 dark:text-violet-800 group-hover:text-violet-600 dark:group-hover:text-violet-400",
+  },
+};
 
 export default function Home() {
   return (
-    <div className="relative min-h-screen w-full flex flex-col items-center justify-start bg-radial from-neutral-50 to-neutral-200 dark:from-neutral-950 dark:to-neutral-900 px-4 py-16 overflow-x-hidden selection:bg-neutral-800 selection:text-white">
+    <div className="relative min-h-screen w-full flex flex-col items-center justify-start bg-radial from-neutral-50 via-neutral-100 to-neutral-200 dark:from-neutral-950 dark:via-neutral-900 dark:to-neutral-950 px-4 py-16 overflow-x-hidden selection:bg-neutral-800 selection:text-white">
       
       {/* 백그라운드 그리드 데코레이션 */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px] pointer-events-none" />
+
+      {/* 미학적 몽환적 배경 오라(Aura) 링 */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 rounded-full bg-gradient-to-tr from-violet-500/10 to-pink-500/10 blur-3xl pointer-events-none" />
 
       {/* 메인 프로필 컨테이너 */}
       <div className="w-full max-w-md z-10 flex flex-col items-center text-center space-y-8">
         
         {/* 프로필 이미지 및 배지 */}
         <div className="relative flex flex-col items-center group">
-          <div className="relative w-28 h-28 rounded-full p-1 bg-gradient-to-tr from-neutral-800 via-neutral-400 to-neutral-800 dark:from-neutral-200 dark:via-neutral-600 dark:to-neutral-200 shadow-2xl transition-transform duration-500 group-hover:scale-105">
+          {/* 아바타 테두리 그라데이션 광채 */}
+          <div className="relative w-28 h-28 rounded-full p-1 bg-gradient-to-tr from-pink-500 via-violet-500 to-cyan-400 shadow-2xl transition-transform duration-500 group-hover:scale-105 group-hover:rotate-1">
             <div className="w-full h-full rounded-full overflow-hidden bg-neutral-100 dark:bg-neutral-800 border-2 border-white dark:border-neutral-900 flex items-center justify-center">
               {/* 이미지 임시 아바타 플레이스홀더 (Lucide Icon 활용) */}
               <Laptop className="w-12 h-12 text-neutral-700 dark:text-neutral-300 animate-pulse" />
             </div>
           </div>
           
-          <span className="absolute -bottom-2 bg-neutral-900 dark:bg-neutral-50 text-white dark:text-neutral-950 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest border border-neutral-700 dark:border-neutral-300 shadow-lg flex items-center gap-1.5">
+          <span className="absolute -bottom-2 bg-neutral-950 dark:bg-white text-white dark:text-neutral-950 text-[10px] font-black px-3.5 py-1.5 rounded-full uppercase tracking-widest border border-neutral-700 dark:border-neutral-200 shadow-lg flex items-center gap-1.5 transition-transform duration-300 group-hover:scale-105">
             <Sparkles className="w-3 h-3 text-yellow-400 dark:text-yellow-600 animate-spin" style={{ animationDuration: '3s' }} />
-            DEVELOPER
+            CREATOR
           </span>
         </div>
 
         {/* 닉네임 및 설명 */}
         <div className="space-y-3 pt-2">
-          <h1 className="text-3xl font-black tracking-tight text-neutral-900 dark:text-neutral-50">
+          <h1 className="text-3xl font-black tracking-tight bg-gradient-to-r from-neutral-900 via-neutral-600 to-neutral-900 dark:from-white dark:via-neutral-300 dark:to-white bg-clip-text text-transparent">
             @joonbeom0427
           </h1>
-          <p className="text-sm font-semibold text-neutral-600 dark:text-neutral-400 max-w-sm leading-relaxed">
-            Frontend Engineer & Creative Creator. 분산된 나의 모든 가치를 단 하나의 링크에 담습니다.
+          <p className="text-sm font-semibold text-neutral-600 dark:text-neutral-400 max-w-xs leading-relaxed">
+            Frontend Architect & Technical Creator.<br />
+            분산된 나의 모든 활동을 단 하나의 공간에.
           </p>
         </div>
 
         {/* 기술 스택 배지 리스트 */}
         <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1">
-          {["React 19", "Next.js 16", "TypeScript", "Shadcn/ui"].map((tech) => (
+          {[
+            { name: "React 19", color: "border-pink-200 dark:border-pink-900/60 bg-pink-500/5 text-pink-700 dark:text-pink-400" },
+            { name: "Next.js 16", color: "border-violet-200 dark:border-violet-900/60 bg-violet-500/5 text-violet-700 dark:text-violet-400" },
+            { name: "TypeScript", color: "border-cyan-200 dark:border-cyan-900/60 bg-cyan-500/5 text-cyan-700 dark:text-cyan-400" },
+            { name: "Shadcn/ui", color: "border-neutral-300 dark:border-neutral-700 bg-neutral-500/5 text-neutral-800 dark:text-neutral-200" }
+          ].map((tech) => (
             <span 
-              key={tech} 
-              className="text-[10px] font-bold bg-neutral-200/60 dark:bg-neutral-800/60 text-neutral-800 dark:text-neutral-200 px-2.5 py-1 rounded-md border border-neutral-300/40 dark:border-neutral-700/40 backdrop-blur-xs shadow-xs"
+              key={tech.name} 
+              className={`text-[10px] font-black px-2.5 py-1 rounded-md border backdrop-blur-xs shadow-xs ${tech.color}`}
             >
-              {tech}
+              {tech.name}
             </span>
           ))}
         </div>
 
         {/* 링크 카드 리스트 (세로 나열, 중앙 정렬) */}
         <div className="w-full space-y-4 pt-4">
-          {dummyLinks.map((link) => (
-            <a 
-              key={link.id} 
-              href={link.url} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="block w-full focus:outline-none group"
-            >
-              <Card className="w-full bg-white/70 dark:bg-neutral-900/70 border-neutral-200 dark:border-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-600 backdrop-blur-md transition-all duration-300 shadow-md hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 cursor-pointer overflow-hidden">
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    {/* 아이콘 둥근 래퍼 */}
-                    <div className="p-2.5 bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 rounded-lg group-hover:bg-neutral-900 group-hover:text-white dark:group-hover:bg-white dark:group-hover:text-neutral-950 transition-colors duration-300">
-                      <LinkIcon name={link.icon} />
+          {dummyLinks.map((link) => {
+            const styles = styleMap[link.icon] || {
+              cardBg: "bg-white/70 dark:bg-neutral-900/70",
+              iconBg: "bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200",
+              iconColor: "text-neutral-800 dark:text-neutral-200",
+              borderColor: "border-neutral-200 dark:border-neutral-800",
+              hoverBorder: "hover:border-neutral-400 dark:hover:border-neutral-600",
+              textColor: "text-neutral-800 dark:text-neutral-200",
+              arrowColor: "text-neutral-400 dark:text-neutral-600",
+            };
+
+            return (
+              <a 
+                key={link.id} 
+                href={link.url} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="block w-full focus:outline-none group"
+              >
+                <Card className={`w-full border backdrop-blur-md transition-all duration-300 shadow-md hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 cursor-pointer overflow-hidden ${styles.cardBg} ${styles.borderColor} ${styles.hoverBorder}`}>
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      {/* 아이콘 둥근 래퍼 */}
+                      <div className={`p-2.5 rounded-lg transition-all duration-300 ${styles.iconBg}`}>
+                        <LinkIcon name={link.icon} />
+                      </div>
+                      {/* 타이틀 */}
+                      <span className={`font-black text-base transition-colors duration-300 ${styles.textColor}`}>
+                        {link.title}
+                      </span>
                     </div>
-                    {/* 타이틀 */}
-                    <span className="font-bold text-base text-neutral-800 dark:text-neutral-200 group-hover:text-neutral-950 dark:group-hover:text-white transition-colors duration-300">
-                      {link.title}
-                    </span>
-                  </div>
-                  
-                  {/* 새 탭 화살표 */}
-                  <ArrowUpRight className="w-5 h-5 text-neutral-400 dark:text-neutral-600 group-hover:text-neutral-950 dark:group-hover:text-white group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-300" />
-                </CardContent>
-              </Card>
-            </a>
-          ))}
+                    
+                    {/* 새 탭 화살표 */}
+                    <ArrowUpRight className={`w-5 h-5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-300 ${styles.arrowColor}`} />
+                  </CardContent>
+                </Card>
+              </a>
+            );
+          })}
         </div>
 
         {/* 푸터 영역 */}
         <footer className="pt-16 text-center space-y-2">
-          <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400 dark:text-neutral-600">
+          <p className="text-[10px] font-black uppercase tracking-widest bg-gradient-to-r from-pink-500 via-violet-500 to-cyan-500 bg-clip-text text-transparent animate-pulse">
             Powered by My Link
           </p>
           <p className="text-[9px] font-mono text-neutral-400/80 dark:text-neutral-600/80">
