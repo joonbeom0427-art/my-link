@@ -7,18 +7,6 @@ export interface LinkItem {
 
 export const dummyLinks: LinkItem[] = [
   {
-    id: "link-instagram",
-    title: "인스타그램 (Instagram)",
-    url: "https://www.instagram.com",
-    icon: "Instagram",
-  },
-  {
-    id: "link-youtube",
-    title: "유튜브 (YouTube)",
-    url: "https://www.youtube.com",
-    icon: "Youtube",
-  },
-  {
     id: "link-blog",
     title: "기술 블로그 (Blog)",
     url: "https://velog.io",

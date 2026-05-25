@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { dummyLinks } from "../data/links";
+import { useState, useEffect } from "react";
+import { dummyLinks, LinkItem } from "../data/links";
+import { db } from "@/lib/firebase";
+import { collection, getDocs, doc, setDoc, deleteDoc, query, orderBy } from "firebase/firestore";
 import { 
   Card, 
   CardContent 
@@ -26,30 +28,36 @@ import {
   Plus,
   Trash2,
   Settings,
-  Check
+  Check,
+  Edit2
 } from "lucide-react";
 
 // 동적 브랜드 및 일반 아이콘 렌더러 컴포넌트
 function LinkIcon({ name, url }: { name: string; url: string }) {
   // 사용자가 추가한 커스텀 링크의 경우 실시간 파비콘 자동 추출 시도 (F-3.1 규격 충족)
   if (url && (url.startsWith("http://") || url.startsWith("https://"))) {
+    let hostname = "";
     try {
       const parsed = new URL(url);
       if (parsed.hostname && parsed.hostname.includes(".")) {
-        return (
-          <img 
-            src={`https://www.google.com/s2/favicons?domain=${parsed.hostname}&sz=64`} 
-            alt="favicon" 
-            className="w-5 h-5 object-contain"
-            onError={(e) => {
-              // 로드 실패 시 대체 기본 아이콘 노출
-              e.currentTarget.style.display = 'none';
-            }}
-          />
-        );
+        hostname = parsed.hostname;
       }
-    } catch (e) {
+    } catch {
       // 파싱 실패 시 아래의 기본 Lucide 혹은 브랜드 아이콘 폴백으로 연동
+    }
+
+    if (hostname) {
+      return (
+        <img 
+          src={`https://www.google.com/s2/favicons?domain=${hostname}&sz=64`} 
+          alt="favicon" 
+          className="w-5 h-5 object-contain"
+          onError={(e) => {
+            // 로드 실패 시 대체 기본 아이콘 노출
+            e.currentTarget.style.display = 'none';
+          }}
+        />
+      );
     }
   }
 
@@ -161,8 +169,9 @@ const customFallbackStyle = {
 };
 
 export default function Home() {
-  // 로컬 링크 목록 상태 관리
-  const [links, setLinks] = useState(dummyLinks);
+  // 로컬 링크 목록 상태 관리 (Firestore 연동으로 빈 배열 시작)
+  const [links, setLinks] = useState<LinkItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   // 편집 / 관리자 모드 상태
   const [isAdminMode, setIsAdminMode] = useState(false);
@@ -176,6 +185,69 @@ export default function Home() {
   const [titleError, setTitleError] = useState("");
   const [urlError, setUrlError] = useState("");
 
+  // 수정 모달 제어 및 입력 폼 상태
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingLink, setEditingLink] = useState<LinkItem | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editUrl, setEditUrl] = useState("");
+  const [editTitleError, setEditTitleError] = useState("");
+  const [editUrlError, setEditUrlError] = useState("");
+
+  // Firestore 데이터 로드 및 초기 시딩 (Seeding) 함수
+  const fetchLinks = async (showLoading = true) => {
+    try {
+      if (showLoading) setIsLoading(true);
+      const linksRef = collection(db, "users", "anonymous", "links");
+      const q = query(linksRef, orderBy("createdAt", "desc"));
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        // 데이터가 없는 경우 초기 더미 데이터를 Firestore에 세팅하여 콜렉션 파퓰레이션 진행
+        const seededLinks: LinkItem[] = [];
+        for (let i = 0; i < dummyLinks.length; i++) {
+          const item = dummyLinks[i];
+          const docRef = doc(linksRef, item.id);
+          const linkData = {
+            title: item.title,
+            url: item.url,
+            icon: item.icon,
+            // 최신순 정렬(desc) 시 dummyLinks[0]이 가장 상단(최신)에 오도록 과거 순서대로 설정
+            createdAt: new Date(Date.now() - i * 1000),
+          };
+          await setDoc(docRef, linkData);
+          seededLinks.push({
+            id: item.id,
+            ...linkData
+          });
+        }
+        setLinks(seededLinks);
+      } else {
+        const fetchedLinks: LinkItem[] = [];
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          fetchedLinks.push({
+            id: doc.id,
+            title: data.title || "",
+            url: data.url || "",
+            icon: data.icon || "Globe",
+          });
+        });
+        setLinks(fetchedLinks);
+      }
+    } catch (error) {
+      console.error("Firestore에서 링크를 불러오는 중 오류 발생:", error);
+      // 네트워크 혹은 권한 오류 발생 시 로컬 더미 데이터로 안전한 폴백 제공
+      setLinks(dummyLinks);
+    } finally {
+      if (showLoading) setIsLoading(false);
+    }
+  };
+
+  // 컴포넌트 마운트 시 최초 1회 패치
+  useEffect(() => {
+    fetchLinks(true);
+  }, []);
+
   // 실시간 파비콘 미리보기 분석용 헬퍼 (F-3.1)
   const getFaviconUrl = (urlStr: string) => {
     if (!urlStr) return "";
@@ -188,14 +260,14 @@ export default function Home() {
       if (parsed.hostname && parsed.hostname.includes(".")) {
         return `https://www.google.com/s2/favicons?domain=${parsed.hostname}&sz=64`;
       }
-    } catch (e) {
+    } catch {
       // 불완전한 URL 입력 단계 시에는 파싱 에러를 무시
     }
     return "";
   };
 
-  // 링크 추가 서브밋 핸들러 (로컬 상태 연동 및 입력 검증 추가)
-  const handleAddLink = (e: React.FormEvent) => {
+  // 링크 추가 서브밋 핸들러 (Firestore 저장 후 로컬 상태 연동 및 입력 검증)
+  const handleAddLink = async (e: React.FormEvent) => {
     e.preventDefault();
     setTitleError("");
     setUrlError("");
@@ -230,7 +302,7 @@ export default function Home() {
       try {
         const parsed = new URL(formattedUrl);
         isUrlValid = !!(parsed.hostname && parsed.hostname.includes(".") && parsed.hostname.split(".").filter(Boolean).length >= 2);
-      } catch (err) {
+      } catch {
         isUrlValid = false;
       }
 
@@ -242,28 +314,137 @@ export default function Home() {
 
     if (!isValid) return;
 
-    const newLinkItem = {
-      id: `link-${Date.now()}`,
+    const newId = `link-${Date.now()}`;
+    const newLinkData = {
       title: cleanTitle,
       url: formattedUrl,
-      icon: "Globe", // 기본 커스텀 링크 아이콘 구분
+      icon: "Globe", // 기본 커스텀 링크 아이콘
+      createdAt: new Date(),
     };
 
-    setLinks((prev) => [...prev, newLinkItem]);
-    
-    // 폼 초기화 및 다이얼로그 닫기
-    setNewTitle("");
-    setNewUrl("");
-    setTitleError("");
-    setUrlError("");
-    setIsDialogOpen(false);
+    try {
+      // Firestore에 새 링크 문서 생성 저장
+      const docRef = doc(db, "users", "anonymous", "links", newId);
+      await setDoc(docRef, newLinkData);
+
+      // 성공 시 목록 갱신 (비로딩 방식으로 부드럽게 갱신)
+      await fetchLinks(false);
+
+      // 폼 초기화 및 다이얼로그 닫기
+      setNewTitle("");
+      setNewUrl("");
+      setTitleError("");
+      setUrlError("");
+      setIsDialogOpen(false);
+    } catch (error) {
+      console.error("Firestore에 링크를 추가하는 중 오류 발생:", error);
+    }
   };
 
-  // 링크 삭제 핸들러
-  const handleDeleteLink = (idToDelete: string, e: React.MouseEvent) => {
+  // 링크 수정 모달 열기 핸들러
+  const handleOpenEditDialog = (link: LinkItem, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setEditingLink(link);
+    setEditTitle(link.title);
+    setEditUrl(link.url);
+    setEditTitleError("");
+    setEditUrlError("");
+    setIsEditDialogOpen(true);
+  };
+
+  // 링크 수정 제출 핸들러 (Firestore 업데이트 후 목록 갱신)
+  const handleEditLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingLink) return;
+
+    setEditTitleError("");
+    setEditUrlError("");
+
+    let isValid = true;
+    const cleanTitle = editTitle.trim();
+    const cleanUrl = editUrl.trim();
+
+    // 1. 제목 공백 및 길이 검증
+    if (cleanTitle.length === 0) {
+      setEditTitleError("링크 제목을 입력해 دهید.");
+      isValid = false;
+    } else if (cleanTitle.length < 2) {
+      setEditTitleError("링크 제목은 최소 2글자 이상 입력해 주세요.");
+      isValid = false;
+    } else if (cleanTitle.length > 40) {
+      setEditTitleError("링크 제목은 최대 40글자 이하로 입력해 주세요.");
+      isValid = false;
+    }
+
+    // 2. URL 공백 및 규격 검증
+    let formattedUrl = cleanUrl;
+    if (cleanUrl.length === 0) {
+      setEditUrlError("이동할 주소(URL)를 입력해 주세요.");
+      isValid = false;
+    } else {
+      if (!/^https?:\/\//i.test(formattedUrl)) {
+        formattedUrl = "https://" + formattedUrl;
+      }
+
+      let isUrlValid = false;
+      try {
+        const parsed = new URL(formattedUrl);
+        isUrlValid = !!(parsed.hostname && parsed.hostname.includes(".") && parsed.hostname.split(".").filter(Boolean).length >= 2);
+      } catch {
+        isUrlValid = false;
+      }
+
+      if (!isUrlValid) {
+        setEditUrlError("올바른 웹 주소(URL) 형식을 입력해 주세요. (예: github.com 또는 https://...)");
+        isValid = false;
+      }
+    }
+
+    if (!isValid) return;
+
+    try {
+      // Firestore에서 해당 문서 참조
+      const docRef = doc(db, "users", "anonymous", "links", editingLink.id);
+      
+      // merge: true 옵션으로 기존 필드(icon, createdAt 등)는 유지하며 필요한 정보만 병합 저장
+      await setDoc(docRef, {
+        title: cleanTitle,
+        url: formattedUrl,
+      }, { merge: true });
+
+      // 성공 시 목록 갱신 (비로딩 방식으로 부드럽게 갱신)
+      await fetchLinks(false);
+
+      // 모달 닫기 및 상태 초기화
+      setIsEditDialogOpen(false);
+      setEditingLink(null);
+      setEditTitle("");
+      setEditUrl("");
+    } catch (error) {
+      console.error("Firestore에 링크를 수정하는 중 오류 발생:", error);
+    }
+  };
+
+  // 링크 삭제 핸들러 (Firestore 동기화 반영)
+  const handleDeleteLink = async (idToDelete: string, e: React.MouseEvent) => {
     e.preventDefault(); // 카드 이동 동작 방지
     e.stopPropagation();
-    setLinks((prev) => prev.filter((link) => link.id !== idToDelete));
+
+    // 실수 방지를 위한 경고창(컨펌) 추가
+    const isConfirmed = window.confirm("정말로 이 링크를 삭제하시겠습니까?\n삭제된 링크는 복구할 수 없습니다.");
+    if (!isConfirmed) return;
+    
+    try {
+      // Firestore에서 해당 문서 삭제
+      const docRef = doc(db, "users", "anonymous", "links", idToDelete);
+      await deleteDoc(docRef);
+
+      // 성공 시 목록 갱신 (비로딩 방식으로 부드럽게 갱신)
+      await fetchLinks(false);
+    } catch (error) {
+      console.error("Firestore에서 링크를 삭제하는 중 오류 발생:", error);
+    }
   };
 
   return (
@@ -347,68 +528,104 @@ export default function Home() {
         {/* 링크 카드 리스트 (세로 나열, 중앙 정렬) */}
         <div className="w-full space-y-4 pt-4">
           
-          {/* 관리자 편집 모드 활성화 시 노출되는 '새 링크 추가' 카드 블록 */}
-          {isAdminMode && (
-            <button 
-              onClick={() => setIsDialogOpen(true)}
-              className="block w-full focus:outline-none group"
-            >
-              <Card className="w-full border-2 border-dashed border-neutral-400 dark:border-neutral-700 hover:border-neutral-800 dark:hover:border-neutral-200 bg-neutral-50/50 hover:bg-neutral-100/50 dark:bg-neutral-900/10 dark:hover:bg-neutral-900/30 backdrop-blur-xs transition-all duration-300 cursor-pointer shadow-xs hover:shadow-md">
-                <CardContent className="p-5 flex items-center justify-center gap-2">
-                  <Plus className="w-5 h-5 text-neutral-600 dark:text-neutral-400 group-hover:scale-110 transition-transform" />
-                  <span className="font-bold text-sm text-neutral-700 dark:text-neutral-300">새로운 링크 추가하기</span>
-                </CardContent>
-              </Card>
-            </button>
-          )}
-
-          {/* 등록된 전체 링크 목록 */}
-          {links.map((link) => {
-            const styles = styleMap[link.icon] || customFallbackStyle;
-
-            return (
-              <a 
-                key={link.id} 
-                href={link.url} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="block w-full focus:outline-none group relative"
-              >
-                <Card className={`w-full border backdrop-blur-md transition-all duration-300 shadow-md hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 cursor-pointer overflow-hidden ${styles.cardBg} ${styles.borderColor} ${styles.hoverBorder}`}>
+          {isLoading ? (
+            // 프리미엄 스켈레톤 로더 UI (Pulsing Skeleton)
+            <>
+              {[1, 2, 3].map((item) => (
+                <Card 
+                  key={item} 
+                  className="w-full border border-neutral-200/50 dark:border-neutral-800/80 bg-white/40 dark:bg-neutral-900/40 backdrop-blur-md animate-pulse overflow-hidden"
+                >
                   <CardContent className="p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      {/* 아이콘 둥근 래퍼 */}
-                      <div className={`p-2.5 rounded-lg transition-all duration-300 ${styles.iconBg}`}>
-                        <LinkIcon name={link.icon} url={link.url} />
-                      </div>
-                      {/* 타이틀 */}
-                      <span className={`font-black text-base transition-colors duration-300 ${styles.textColor}`}>
-                        {link.title}
-                      </span>
+                    <div className="flex items-center gap-4 w-full">
+                      {/* 아이콘 둥근 래퍼 스켈레톤 */}
+                      <div className="w-10 h-10 rounded-lg bg-neutral-200 dark:bg-neutral-800" />
+                      {/* 타이틀 텍스트 스켈레톤 */}
+                      <div className="h-5 bg-neutral-200 dark:bg-neutral-800 rounded-md w-1/2" />
                     </div>
-                    
-                    <div className="flex items-center gap-2">
-                      {/* 관리자 모드 활성화 시 노출되는 '삭제' 버튼 */}
-                      {isAdminMode ? (
-                        <Button
-                          variant="destructive"
-                          size="icon-sm"
-                          onClick={(e) => handleDeleteLink(link.id, e)}
-                          className="hover:scale-105 transition-transform"
-                          title="링크 삭제"
-                        >
-                          <Trash2 className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
-                        </Button>
-                      ) : (
-                        /* 일반 모드 시 노출되는 새 탭 화살표 */
-                        <ArrowUpRight className={`w-5 h-5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-300 ${styles.arrowColor}`} />
-                      )}
-                    </div>
+                    {/* 우측 아이콘 스켈레톤 */}
+                    <div className="w-5 h-5 bg-neutral-200 dark:bg-neutral-800 rounded-md shrink-0" />
                   </CardContent>
                 </Card>
-              </a>
-            );
-          })}
+              ))}
+            </>
+          ) : (
+            <>
+              {/* 관리자 편집 모드 활성화 시 노출되는 '새 링크 추가' 카드 블록 */}
+              {isAdminMode && (
+                <button 
+                  onClick={() => setIsDialogOpen(true)}
+                  className="block w-full focus:outline-none group"
+                >
+                  <Card className="w-full border-2 border-dashed border-neutral-400 dark:border-neutral-700 hover:border-neutral-800 dark:hover:border-neutral-200 bg-neutral-50/50 hover:bg-neutral-100/50 dark:bg-neutral-900/10 dark:hover:bg-neutral-900/30 backdrop-blur-xs transition-all duration-300 cursor-pointer shadow-xs hover:shadow-md">
+                    <CardContent className="p-5 flex items-center justify-center gap-2">
+                      <Plus className="w-5 h-5 text-neutral-600 dark:text-neutral-400 group-hover:scale-110 transition-transform" />
+                      <span className="font-bold text-sm text-neutral-700 dark:text-neutral-300">새로운 링크 추가하기</span>
+                    </CardContent>
+                  </Card>
+                </button>
+              )}
+
+              {/* 등록된 전체 링크 목록 */}
+              {links.map((link) => {
+                const styles = styleMap[link.icon] || customFallbackStyle;
+
+                return (
+                  <a 
+                    key={link.id} 
+                    href={link.url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="block w-full focus:outline-none group relative"
+                  >
+                    <Card className={`w-full border backdrop-blur-md transition-all duration-300 shadow-md hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 cursor-pointer overflow-hidden ${styles.cardBg} ${styles.borderColor} ${styles.hoverBorder}`}>
+                      <CardContent className="p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          {/* 아이콘 둥근 래퍼 */}
+                          <div className={`p-2.5 rounded-lg transition-all duration-300 ${styles.iconBg}`}>
+                            <LinkIcon name={link.icon} url={link.url} />
+                          </div>
+                          {/* 타이틀 */}
+                          <span className={`font-black text-base transition-colors duration-300 ${styles.textColor}`}>
+                            {link.title}
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                          {/* 관리자 모드 활성화 시 노출되는 '수정' 및 '삭제' 버튼 그룹 */}
+                          {isAdminMode ? (
+                            <div className="flex items-center gap-1.5">
+                              <Button
+                                variant="outline"
+                                size="icon-sm"
+                                onClick={(e) => handleOpenEditDialog(link, e)}
+                                className="hover:scale-105 transition-transform border-neutral-200 dark:border-neutral-800"
+                                title="링크 수정"
+                              >
+                                <Edit2 className="w-3.5 h-3.5 text-neutral-600 dark:text-neutral-400" />
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="icon-sm"
+                                onClick={(e) => handleDeleteLink(link.id, e)}
+                                className="hover:scale-105 transition-transform"
+                                title="링크 삭제"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
+                              </Button>
+                            </div>
+                          ) : (
+                            /* 일반 모드 시 노출되는 새 탭 화살표 */
+                            <ArrowUpRight className={`w-5 h-5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-300 ${styles.arrowColor}`} />
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </a>
+                );
+              })}
+            </>
+          )}
         </div>
 
         {/* 푸터 영역 */}
@@ -519,6 +736,110 @@ export default function Home() {
               </Button>
               <Button type="submit" className="bg-neutral-950 hover:bg-neutral-800 text-white dark:bg-white dark:hover:bg-neutral-100 dark:text-neutral-950">
                 링크 추가
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ========================================================================= */}
+      {/* 팝업 다이얼로그 (Dialog - 링크 수정 폼) */}
+      {/* ========================================================================= */}
+      <Dialog 
+        open={isEditDialogOpen} 
+        onOpenChange={(open) => {
+          setIsEditDialogOpen(open);
+          if (!open) {
+            setEditingLink(null);
+            setEditTitle("");
+            setEditUrl("");
+            setEditTitleError("");
+            setEditUrlError("");
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[425px] border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-900/95 backdrop-blur-xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-black tracking-tight text-neutral-900 dark:text-neutral-50 flex items-center gap-2">
+              <Edit2 className="w-5 h-5 text-violet-500" />
+              링크 수정하기
+            </DialogTitle>
+          </DialogHeader>
+          
+          <form onSubmit={handleEditLink} noValidate className="space-y-5 pt-4">
+            {/* 링크 제목 입력 필드 */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-title" className="text-xs font-bold text-neutral-500 uppercase tracking-wider block">링크 제목</Label>
+              <Input 
+                id="edit-title" 
+                value={editTitle} 
+                onChange={(e) => {
+                  setEditTitle(e.target.value);
+                  if (editTitleError) setEditTitleError("");
+                }} 
+                placeholder="예: 나의 노션 이력서 📄" 
+                className={`w-full font-semibold text-sm border-neutral-200 dark:border-neutral-800 ${editTitleError ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20' : ''}`}
+                required 
+              />
+              {editTitleError && (
+                <p className="text-red-500 text-xs font-bold mt-1 animate-pulse">⚠️ {editTitleError}</p>
+              )}
+            </div>
+            
+            {/* 링크 URL 입력 필드 */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-url" className="text-xs font-bold text-neutral-500 uppercase tracking-wider block">이동할 주소 (URL)</Label>
+              <Input 
+                id="edit-url" 
+                value={editUrl} 
+                onChange={(e) => {
+                  setEditUrl(e.target.value);
+                  if (editUrlError) setEditUrlError("");
+                }} 
+                placeholder="예: notion.so/yourname" 
+                className={`w-full font-semibold text-sm border-neutral-200 dark:border-neutral-800 ${editUrlError ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20' : ''}`}
+                required 
+              />
+              {editUrlError && (
+                <p className="text-red-500 text-xs font-bold mt-1 animate-pulse">⚠️ {editUrlError}</p>
+              )}
+            </div>
+            
+            {/* 실시간 파비콘 자동 감지 미리보기 박스 (PRD F-3.1 규격 충족) */}
+            {getFaviconUrl(editUrl) && !editUrlError && (
+              <div className="p-3 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-lg flex items-center gap-3 animate-fade-in transition-all">
+                <div className="p-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-md">
+                  <img 
+                    src={getFaviconUrl(editUrl)} 
+                    alt="favicon-preview" 
+                    className="w-5 h-5 object-contain" 
+                    onError={(e) => {
+                      e.currentTarget.src = "https://www.google.com/s2/favicons?domain=google.com&sz=64";
+                    }}
+                  />
+                </div>
+                <div className="text-xs text-left">
+                  <p className="font-black text-neutral-800 dark:text-neutral-200">자동 파비콘 연동 감지</p>
+                  <p className="text-neutral-500 font-mono text-[9px] truncate max-w-[260px] mt-0.5">
+                    {new URL(/^https?:\/\//i.test(editUrl) ? editUrl : "https://" + editUrl).hostname}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <DialogFooter className="pt-4 flex gap-2 justify-end">
+              <Button type="button" variant="outline" onClick={() => {
+                setIsEditDialogOpen(false);
+                setEditingLink(null);
+                setEditTitle("");
+                setEditUrl("");
+                setEditTitleError("");
+                setEditUrlError("");
+              }}>
+                취소
+              </Button>
+              <Button type="submit" className="bg-neutral-950 hover:bg-neutral-800 text-white dark:bg-white dark:hover:bg-neutral-100 dark:text-neutral-950">
+                수정 완료
               </Button>
             </DialogFooter>
           </form>
