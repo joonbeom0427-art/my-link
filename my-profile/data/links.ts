@@ -3,7 +3,9 @@ export interface LinkItem {
   title: string;
   url: string;
   icon: string; // Lucide 아이콘 명칭 매핑용 문자열 (또는 파비콘 로드 실패 시 대체용)
+  clickCount?: number;
 }
+
 
 export const dummyLinks: LinkItem[] = [
   {
